@@ -8,6 +8,7 @@
 //
 
 #import "MJRefreshFooter.h"
+#include "UIScrollView+MJRefresh.h"
 
 @interface MJRefreshFooter()
 
@@ -36,48 +37,44 @@
     // 设置自己的高度
     self.mj_h = MJRefreshFooterHeight;
     
-    // 默认是自动隐藏
-    self.automaticallyHidden = YES;
+    // 默认不会自动隐藏
+    self.automaticallyHidden = NO;
 }
 
-
-- (void)scrollViewContentSizeDidChange:(NSDictionary *)change
+- (void)willMoveToSuperview:(UIView *)newSuperview
 {
-    [super scrollViewContentSizeDidChange:change];
+    [super willMoveToSuperview:newSuperview];
     
-    // change == nil是第一次调用的时候
-    if (!self.isAutomaticallyHidden || change == nil) return;
-    
-    if ([self.scrollView isKindOfClass:[UITableView class]]) {
-        UITableView *tableView = (UITableView *)self.scrollView;
-        NSInteger count = 0;
-        for (NSInteger i = 0; i < tableView.numberOfSections; i++) {
-            count += [tableView numberOfRowsInSection:i];
+    if (newSuperview) {
+        // 监听scrollView数据的变化
+        if ([self.scrollView isKindOfClass:[UITableView class]] || [self.scrollView isKindOfClass:[UICollectionView class]]) {
+            [self.scrollView setMj_reloadDataBlock:^(NSInteger totalDataCount) {
+                if (self.isAutomaticallyHidden) {
+                    self.hidden = (totalDataCount == 0);
+                }
+            }];
         }
-        self.hidden = (count == 0);
-    } else if ([self.scrollView isKindOfClass:[UICollectionView class]]) {
-        UICollectionView *collectionView = (UICollectionView *)self.scrollView;
-        NSInteger count = 0;
-        for (NSInteger i = 0; i < collectionView.numberOfSections; i++) {
-            count += [collectionView numberOfItemsInSection:i];
-        }
-        self.hidden = (count == 0);
     }
+}
+
+#pragma mark - 公共方法
+- (void)endRefreshingWithNoMoreData
+{
+    MJRefreshDispatchAsyncOnMainQueue(self.state = MJRefreshStateNoMoreData;)
+}
+
+- (void)noticeNoMoreData
+{
+    [self endRefreshingWithNoMoreData];
+}
+
+- (void)resetNoMoreData
+{
+    MJRefreshDispatchAsyncOnMainQueue(self.state = MJRefreshStateIdle;)
 }
 
 - (void)setAutomaticallyHidden:(BOOL)automaticallyHidden
 {
     _automaticallyHidden = automaticallyHidden;
-}
-
-#pragma mark - 公共方法
-- (void)noticeNoMoreData
-{
-    self.state = MJRefreshStateNoMoreData;
-}
-
-- (void)resetNoMoreData
-{
-    self.state = MJRefreshStateIdle;
 }
 @end
